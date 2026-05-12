@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { Activity, AlertTriangle, BarChart3, LineChart, RefreshCw, Search, ShieldAlert, TrendingUp } from "lucide-react";
 import { TradingChart } from "@/components/TradingChart";
-import { fetchBacktest, fetchChart, fetchSignals, fetchSummary } from "@/lib/api";
-import type { Backtest, Candle, StockSummary, StrategySignal } from "@/types/stock";
+import { fetchBacktest, fetchChart, fetchSearch, fetchSignals, fetchSummary } from "@/lib/api";
+import type { Backtest, Candle, SearchResult, StockSummary, StrategySignal } from "@/types/stock";
 
 const ko = (value: string) => decodeURIComponent(value);
 
@@ -73,6 +73,9 @@ export default function Home() {
   const refreshSeconds = 15;
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [nextRefreshIn, setNextRefreshIn] = useState(15);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -118,7 +121,36 @@ export default function Home() {
     return () => window.clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    const query = tickerInput.trim();
+    if (!query) {
+      setSearchResults([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    let isMounted = true;
+    setSearchLoading(true);
+    const timer = window.setTimeout(() => {
+      fetchSearch(query)
+        .then((result) => {
+          if (!isMounted) return;
+          setSearchResults(result.results);
+          setShowSearchResults(true);
+        })
+        .finally(() => {
+          if (isMounted) setSearchLoading(false);
+        });
+    }, 300);
+
+    return () => {
+      isMounted = false;
+      window.clearTimeout(timer);
+    };
+  }, [tickerInput]);
+
   const latest = candles[candles.length - 1];
+  const previousClose = summary ? summary.price - summary.change : null;
   const visibleCandles = useMemo(() => candles, [candles]);
   const bestSignal = useMemo(
     () => signals.filter((signal) => signal.status !== "planned").sort((a, b) => b.score - a.score)[0],
@@ -131,7 +163,17 @@ export default function Home() {
   function submitSearch(event: React.FormEvent) {
     event.preventDefault();
     const cleaned = tickerInput.trim().toUpperCase();
-    if (cleaned) setTicker(cleaned);
+    if (cleaned) {
+      setTicker(cleaned);
+      setShowSearchResults(false);
+    }
+  }
+
+  function selectSearchResult(result: SearchResult) {
+    const symbol = result.symbol.toUpperCase();
+    setTickerInput(symbol);
+    setTicker(symbol);
+    setShowSearchResults(false);
   }
 
   return (
@@ -146,10 +188,32 @@ export default function Home() {
         </div>
 
         <form className="search" onSubmit={submitSearch}>
-          <input aria-label="Ticker" value={tickerInput} onChange={(event) => setTickerInput(event.target.value)} placeholder="AAPL, NVDA, MSFT, TSLA" />
+          <input
+            aria-label="Ticker"
+            value={tickerInput}
+            onBlur={() => window.setTimeout(() => setShowSearchResults(false), 160)}
+            onChange={(event) => {
+              setTickerInput(event.target.value);
+              setShowSearchResults(true);
+            }}
+            onFocus={() => setShowSearchResults(true)}
+            placeholder="AAPL, NVDA, MSFT, TSLA"
+          />
           <button className="icon-button" type="submit" aria-label={ko("%EC%A2%85%EB%AA%A9%20%EA%B2%80%EC%83%89")}>
             <Search size={18} />
           </button>
+          {showSearchResults && (searchResults.length > 0 || searchLoading) ? (
+            <div className="search-suggestions">
+              {searchLoading ? <div className="search-suggestion muted">{ko("%EA%B2%80%EC%83%89%20%EC%A4%91")}</div> : null}
+              {searchResults.map((result) => (
+                <button className="search-suggestion" key={`${result.symbol}-${result.exchange}`} type="button" onMouseDown={(event) => event.preventDefault()} onClick={() => selectSearchResult(result)}>
+                  <strong>{result.symbol}</strong>
+                  <span>{result.name}</span>
+                  <em>{result.exchange || result.type}</em>
+                </button>
+              ))}
+            </div>
+          ) : null}
         </form>
       </header>
 
@@ -200,7 +264,7 @@ export default function Home() {
             </div>
 
             <div className="quick-stats">
-              <Metric label={ko("%EC%B5%9C%EA%B7%BC%20%EC%A2%85%EA%B0%80")} value={latest ? `$${latest.close.toFixed(2)}` : "--"} />
+              <Metric label={ko("%EC%A0%84%EC%9D%BC%20%EC%A2%85%EA%B0%80")} value={previousClose !== null ? `$${previousClose.toFixed(2)}` : "--"} />
               <Metric label="RSI 14" value={latest?.rsi14 ? latest.rsi14.toFixed(1) : "--"} />
               <Metric label="ATR 14" value={latest?.atr14 ? `$${latest.atr14.toFixed(2)}` : "--"} />
               <Metric label={ko("%EC%B5%9C%EA%B3%A0%20%EC%A0%84%EB%9E%B5")} value={bestSignal ? `${STRATEGY_LABELS[bestSignal.strategy] ?? bestSignal.strategy} ${bestSignal.score}${ko("%EC%A0%90")}` : "--"} />
@@ -262,10 +326,10 @@ export default function Home() {
         </section>
 
         <section className="lower-grid">
-          <div className="panel">
+          <div className="panel backtest-panel">
             <div className="section-head">
               <div>
-                <h2>{ko("%EC%8B%A4%EC%A0%84%ED%98%95%20%EB%B0%B1%ED%85%8C%EC%8A%A4")}</h2>
+                <h2>{ko("%EC%8B%A4%EC%A0%84%ED%98%95%20%EB%B0%B1%ED%85%8C%EC%8A%A4%ED%8A%B8")}</h2>
                 <p>{STRATEGY_LABELS[strategy] ?? strategy} · {backtest?.market_filter ?? "SPY filter"} · {backtest?.start_date}~{backtest?.end_date}</p>
               </div>
               <Activity size={20} />
@@ -324,7 +388,7 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="panel">
+          <div className="panel trades-panel">
             <div className="section-head">
               <div>
                 <h2>{ko("%EC%B5%9C%EA%B7%BC%20%EA%B0%80%EC%83%81%20%EB%A7%A4%EB%A7%A4")}</h2>

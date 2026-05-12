@@ -1,4 +1,4 @@
-import type { Backtest, ChartResponse, StockSummary, StrategySignalResponse } from "@/types/stock";
+import type { Backtest, ChartResponse, SearchResponse, StockSummary, StrategySignalResponse } from "@/types/stock";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
@@ -24,6 +24,10 @@ export function fetchSignals(ticker: string): Promise<StrategySignalResponse> {
 
 export function fetchBacktest(ticker: string, strategy: string, period = "5y"): Promise<Backtest> {
   return request<Backtest>(`/api/backtest/${ticker}?strategy=${strategy}&period=${period}`).catch(() => demoBacktest(ticker, strategy));
+}
+
+export function fetchSearch(query: string): Promise<SearchResponse> {
+  return request<SearchResponse>(`/api/search?q=${encodeURIComponent(query)}`).catch(() => ({ query, results: [] }));
 }
 
 function demoSummary(ticker: string): StockSummary {

@@ -42,6 +42,18 @@ export type ChartResponse = {
   candles: Candle[];
 };
 
+export type SearchResult = {
+  symbol: string;
+  name: string;
+  exchange: string;
+  type: string;
+};
+
+export type SearchResponse = {
+  query: string;
+  results: SearchResult[];
+};
+
 export type StrategySignal = {
   strategy: string;
   category: "intraday" | "short" | "swing";
