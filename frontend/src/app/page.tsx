@@ -70,6 +70,8 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [refreshTick, setRefreshTick] = useState(0);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [refreshSeconds, setRefreshSeconds] = useState(60);
 
   useEffect(() => {
     let isMounted = true;
@@ -94,6 +96,14 @@ export default function Home() {
       isMounted = false;
     };
   }, [ticker, strategy, timeframe, backtestPeriod, refreshTick]);
+
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const timer = window.setInterval(() => {
+      setRefreshTick((value) => value + 1);
+    }, refreshSeconds * 1000);
+    return () => window.clearInterval(timer);
+  }, [autoRefresh, refreshSeconds]);
 
   const latest = candles[candles.length - 1];
   const visibleCandles = useMemo(() => candles, [candles]);
@@ -151,10 +161,21 @@ export default function Home() {
                 <h1>{summary?.ticker ?? ticker}</h1>
                 <p>{summary?.description ?? "Loading"}</p>
               </div>
-              <button className="refresh-button" type="button" onClick={() => setRefreshTick((value) => value + 1)}>
-                <RefreshCw size={16} />
-                {ko("%EC%83%88%EB%A1%9C%EA%B3%A0%EC%B9%A8")}
-              </button>
+              <div className="refresh-controls">
+                <button className="refresh-button" type="button" onClick={() => setRefreshTick((value) => value + 1)}>
+                  <RefreshCw size={16} />
+                  {ko("%EC%83%88%EB%A1%9C%EA%B3%A0%EC%B9%A8")}
+                </button>
+                <label className="auto-toggle">
+                  <input checked={autoRefresh} type="checkbox" onChange={(event) => setAutoRefresh(event.target.checked)} />
+                  <span>{ko("%EC%9E%90%EB%8F%99")}</span>
+                </label>
+                <select aria-label={ko("%EC%9E%90%EB%8F%99%20%EA%B0%B1%EC%8B%A0%20%EA%B0%84%EA%B2%A9")} className="refresh-select" value={refreshSeconds} onChange={(event) => setRefreshSeconds(Number(event.target.value))}>
+                  <option value={15}>15s</option>
+                  <option value={30}>30s</option>
+                  <option value={60}>60s</option>
+                </select>
+              </div>
             </div>
 
             <div className="price-row">
