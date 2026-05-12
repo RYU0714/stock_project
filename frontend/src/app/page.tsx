@@ -72,6 +72,8 @@ export default function Home() {
   const [refreshTick, setRefreshTick] = useState(0);
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [refreshSeconds, setRefreshSeconds] = useState(60);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [nextRefreshIn, setNextRefreshIn] = useState(60);
 
   useEffect(() => {
     let isMounted = true;
@@ -84,6 +86,8 @@ export default function Home() {
         setCandles(chartResult.candles);
         setSignals(signalResult.signals);
         setBacktest(backtestResult);
+        setLastUpdated(new Date());
+        setNextRefreshIn(refreshSeconds);
       })
       .catch((requestError) => {
         if (!isMounted) return;
@@ -95,13 +99,25 @@ export default function Home() {
     return () => {
       isMounted = false;
     };
-  }, [ticker, strategy, timeframe, backtestPeriod, refreshTick]);
+  }, [ticker, strategy, timeframe, backtestPeriod, refreshTick, refreshSeconds]);
 
   useEffect(() => {
     if (!autoRefresh) return;
     const timer = window.setInterval(() => {
       setRefreshTick((value) => value + 1);
     }, refreshSeconds * 1000);
+    return () => window.clearInterval(timer);
+  }, [autoRefresh, refreshSeconds]);
+
+  useEffect(() => {
+    setNextRefreshIn(refreshSeconds);
+  }, [refreshSeconds, autoRefresh, ticker, strategy, timeframe, backtestPeriod]);
+
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const timer = window.setInterval(() => {
+      setNextRefreshIn((value) => (value <= 1 ? refreshSeconds : value - 1));
+    }, 1000);
     return () => window.clearInterval(timer);
   }, [autoRefresh, refreshSeconds]);
 
@@ -154,6 +170,8 @@ export default function Home() {
               <span>{SOURCE_LABELS[summary?.source ?? "demo"]} OHLCV</span>
               <span>{ko("%EA%B3%84%EC%82%B0%20%EB%8D%B0%EC%9D%B4%ED%84%B0")}: {SOURCE_LABELS[summary?.source ?? "demo"]}</span>
               <span>{loading ? ko("%EA%B0%B1%EC%8B%A0%20%EC%A4%91") : ko("%EC%A4%80%EB%B9%84%20%EC%99%84%EB%A3%8C")}</span>
+              <span>{ko("%EB%A7%88%EC%A7%80%EB%A7%89%20%EA%B0%B1%EC%8B%A0")}: {lastUpdated ? lastUpdated.toLocaleTimeString("ko-KR", { hour12: false }) : "--"}</span>
+              <span>{autoRefresh ? `${ko("%EB%8B%A4%EC%9D%8C%20%EA%B0%B1%EC%8B%A0")}: ${nextRefreshIn}s` : ko("%EC%9E%90%EB%8F%99%20%EA%BA%BC%EC%A7%90")}</span>
             </div>
 
             <div className="quote-row">
@@ -162,15 +180,38 @@ export default function Home() {
                 <p>{summary?.description ?? "Loading"}</p>
               </div>
               <div className="refresh-controls">
-                <button className="refresh-button" type="button" onClick={() => setRefreshTick((value) => value + 1)}>
+                <button
+                  className="refresh-button"
+                  type="button"
+                  onClick={() => {
+                    setNextRefreshIn(refreshSeconds);
+                    setRefreshTick((value) => value + 1);
+                  }}
+                >
                   <RefreshCw size={16} />
                   {ko("%EC%83%88%EB%A1%9C%EA%B3%A0%EC%B9%A8")}
                 </button>
                 <label className="auto-toggle">
-                  <input checked={autoRefresh} type="checkbox" onChange={(event) => setAutoRefresh(event.target.checked)} />
+                  <input
+                    checked={autoRefresh}
+                    type="checkbox"
+                    onChange={(event) => {
+                      setAutoRefresh(event.target.checked);
+                      setNextRefreshIn(refreshSeconds);
+                    }}
+                  />
                   <span>{ko("%EC%9E%90%EB%8F%99")}</span>
                 </label>
-                <select aria-label={ko("%EC%9E%90%EB%8F%99%20%EA%B0%B1%EC%8B%A0%20%EA%B0%84%EA%B2%A9")} className="refresh-select" value={refreshSeconds} onChange={(event) => setRefreshSeconds(Number(event.target.value))}>
+                <select
+                  aria-label={ko("%EC%9E%90%EB%8F%99%20%EA%B0%B1%EC%8B%A0%20%EA%B0%84%EA%B2%A9")}
+                  className="refresh-select"
+                  value={refreshSeconds}
+                  onChange={(event) => {
+                    const seconds = Number(event.target.value);
+                    setRefreshSeconds(seconds);
+                    setNextRefreshIn(seconds);
+                  }}
+                >
                   <option value={15}>15s</option>
                   <option value={30}>30s</option>
                   <option value={60}>60s</option>

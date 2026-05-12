@@ -195,6 +195,7 @@ button {
 
 .eyebrow {
   justify-content: flex-start;
+  flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 18px;
 }
