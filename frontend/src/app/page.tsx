@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Activity, AlertTriangle, BarChart3, LineChart, RefreshCw, Search, ShieldAlert, TrendingUp } from "lucide-react";
 import { TradingChart } from "@/components/TradingChart";
@@ -241,6 +242,9 @@ export default function Home() {
                 <p>{summary?.description ?? "Loading"}</p>
               </div>
               <div className="refresh-controls">
+                <Link className="company-link" href={`/stock/${ticker}/company`}>
+                  {ko("%EA%B8%B0%EC%97%85%20%EC%A0%95%EB%B3%B4")}
+                </Link>
                 <button
                   className="refresh-button"
                   type="button"

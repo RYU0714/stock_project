@@ -54,6 +54,125 @@ export type SearchResponse = {
   results: SearchResult[];
 };
 
+export type CompanyFiling = {
+  form: string;
+  filed: string;
+  accessionNumber: string;
+  reportDate: string;
+  primaryDocument: string;
+  url: string;
+};
+
+export type CompanyAnnualFinancial = {
+  fiscalYear: number;
+  filed: string;
+  form: string;
+  revenue: number | null;
+  grossProfit: number | null;
+  operatingIncome: number | null;
+  netIncome: number | null;
+  epsDiluted: number | null;
+  assets: number | null;
+  liabilities: number | null;
+  equity: number | null;
+  cash: number | null;
+  longTermDebt: number | null;
+  operatingCashFlow: number | null;
+  capitalExpenditures: number | null;
+  freeCashFlow: number | null;
+};
+
+export type CompanyQuarterlyFinancial = CompanyAnnualFinancial & {
+  fiscalPeriod: "Q1" | "Q2" | "Q3" | "Q4";
+  quarterLabel: string;
+  derived?: boolean;
+};
+
+export type CompanyMetrics = {
+  revenueGrowthPercent: number | null;
+  netMarginPercent: number | null;
+  operatingMarginPercent: number | null;
+  debtToEquityPercent: number | null;
+  freeCashFlowMarginPercent: number | null;
+};
+
+export type CompanyMarketData = {
+  price: number | null;
+  change: number | null;
+  changePercent: number | null;
+  previousClose: number | null;
+  open: number | null;
+  dayHigh: number | null;
+  dayLow: number | null;
+  volume: number | null;
+  marketCap: number | null;
+  trailingPe: number | null;
+  forwardPe: number | null;
+  priceToBook: number | null;
+  dividendYieldPercent: number | null;
+  beta: number | null;
+  fiftyTwoWeekHigh: number | null;
+  fiftyTwoWeekLow: number | null;
+  averageVolume: number | null;
+  sharesOutstanding: number | null;
+  targetMeanPrice: number | null;
+  targetHighPrice: number | null;
+  targetLowPrice: number | null;
+  targetMedianPrice: number | null;
+  analystCount: number | null;
+  recommendation: string | null;
+  sector: string | null;
+  industry: string | null;
+  country: string | null;
+  currency: string | null;
+  ipo: string | null;
+  logo: string | null;
+  website: string | null;
+  employees: number | null;
+  summary: string | null;
+};
+
+export type AnalystRecommendationTrend = {
+  period: string;
+  strongBuy: number;
+  buy: number;
+  hold: number;
+  sell: number;
+  strongSell: number;
+};
+
+export type CompanyAnalystData = {
+  targetMeanPrice: number | null;
+  targetHighPrice: number | null;
+  targetLowPrice: number | null;
+  targetMedianPrice: number | null;
+  upsidePercent: number | null;
+  analystCount: number | null;
+  recommendation: string | null;
+  consensus: string;
+  recommendationTrends: AnalystRecommendationTrend[];
+};
+
+export type CompanyInfo = {
+  ticker: string;
+  cik: string;
+  name: string;
+  sic: string | null;
+  industry: string | null;
+  fiscalYearEnd: string | null;
+  tickers: string[];
+  exchanges: string[];
+  mailingAddress: string | null;
+  businessAddress: string | null;
+  recentFilings: CompanyFiling[];
+  annualFinancials: CompanyAnnualFinancial[];
+  quarterlyFinancials: CompanyQuarterlyFinancial[];
+  metrics: CompanyMetrics;
+  marketData: CompanyMarketData | null;
+  analystData: CompanyAnalystData;
+  source: "sec";
+};
+
 export type StrategySignal = {
   strategy: string;
   category: "intraday" | "short" | "swing";
